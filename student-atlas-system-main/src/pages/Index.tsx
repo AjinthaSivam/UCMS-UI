@@ -33,7 +33,7 @@ const Index = () => {
                 asChild 
                 size="lg" 
                 variant="outline"
-                className="border-white/30 text-white hover:bg-white/10 px-8 py-3 text-lg"
+                className="border-white/30 text-primary hover:bg-white/10 px-8 py-3 text-lg"
               >
                 <Link to="/login">Sign In</Link>
               </Button>

@@ -7,9 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { BookOpen, GraduationCap, Trophy, Plus, Minus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { StudentNavigation } from "@/components/StudentNavigation";
-import axios from "axios";
+import api from "@/lib/axios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
 type Student = { id: number; name: string; email: string; studentNumber: string };
 type Course = { id: number; code: string; title: string; credits: number; instructor: string };
 type Registration = { id: number; student: Student; course: Course; registrationDate: string };
@@ -24,22 +25,23 @@ const StudentDashboard = () => {
   const [results, setResults] = useState<ResultItem[]>([]);
   const [selectedStudentNumber, setSelectedStudentNumber] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Fetch data
   const fetchStudents = async () => {
-    const res = await axios.get(`${baseUrl}/api/students`);
+    const res = await api.get(`${baseUrl}/api/students`);
     setStudents(res.data);
   };
   const fetchCourses = async () => {
-    const res = await axios.get(`${baseUrl}/api/courses`);
+    const res = await api.get(`${baseUrl}/api/courses`);
     setCourses(res.data);
   };
   const fetchRegistrations = async () => {
-    const res = await axios.get(`${baseUrl}/api/registrations`);
+    const res = await api.get(`${baseUrl}/api/registrations`);
     setRegistrations(res.data);
   };
   const fetchResults = async () => {
-    const res = await axios.get(`${baseUrl}/api/results`);
+    const res = await api.get(`${baseUrl}/api/results`);
     setResults(res.data);
   };
 
@@ -54,11 +56,15 @@ const StudentDashboard = () => {
     init();
   }, [toast]);
 
-  // Load studentNumber from localStorage and keep it in sync
+  // Load studentNumber from user context or localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("studentNumber") || "";
-    setSelectedStudentNumber(saved);
-  }, []);
+    if (user?.studentNumber) {
+      setSelectedStudentNumber(user.studentNumber);
+    } else {
+      const saved = localStorage.getItem("studentNumber") || "";
+      setSelectedStudentNumber(saved);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (selectedStudentNumber) {
@@ -79,7 +85,7 @@ const StudentDashboard = () => {
         return;
       }
       const payload = { student: { id: student.id }, course: { id: courseId }, registrationDate: new Date().toISOString().split('T')[0] };
-      await axios.post(`${baseUrl}/api/registrations`, payload);
+      await api.post(`${baseUrl}/api/registrations`, payload);
       await fetchRegistrations();
       toast({ title: "Registration Successful", description: "You have been registered for the course." });
     } catch (e) {
@@ -91,7 +97,7 @@ const StudentDashboard = () => {
     try {
       const reg = myRegistrations.find(r => r.course?.id === courseId);
       if (!reg) return;
-      await axios.delete(`${baseUrl}/api/registrations/${reg.id}`);
+      await api.delete(`${baseUrl}/api/registrations/${reg.id}`);
       await fetchRegistrations();
       toast({ title: "Course Dropped", description: "You have dropped the course.", variant: "destructive" });
     } catch (e) {

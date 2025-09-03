@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BookOpen, Users, Trophy, Plus, Edit, Trash2 } from "lucide-react";
+import { BookOpen, Users, Trophy, Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminNavigation } from "@/components/AdminNavigation";
-import axios from "axios";
+import { RegisterStudentDialog } from "@/components/RegisterStudentDialog";
+import api from "@/lib/axios";
 
 const baseUrl = import.meta.env.VITE_API_URL;
 
@@ -38,10 +39,13 @@ const AdminDashboard = () => {
   const [isEditResultOpen, setIsEditResultOpen] = useState(false);
   const [editResult, setEditResult] = useState<{ id: number | null; studentNumber: string; courseCode: string; grade: string }>({ id: null, studentNumber: "", courseCode: "", grade: "" });
 
+  // Password visibility state
+  const [showPasswords, setShowPasswords] = useState<{ [key: number]: boolean }>({});
+
   // New GET functions
   const fetchCourses = async () => {
     try {
-      const response = await axios.get(`${baseUrl}/api/courses`);
+      const response = await api.get(`${baseUrl}/api/courses`);
       setCourses(response.data);
     } catch (error) {
       toast({
@@ -54,7 +58,7 @@ const AdminDashboard = () => {
 
   const fetchStudents = async () => {
     try {
-      const response = await axios.get(`${baseUrl}/api/students`);
+      const response = await api.get(`${baseUrl}/api/students`);
       setStudents(response.data);
     } catch (error) {
       toast({
@@ -83,7 +87,7 @@ const AdminDashboard = () => {
         grade: newResult.grade,
       };
 
-      await axios.post(`${baseUrl}/api/results`, payload);
+      await api.post(`${baseUrl}/api/results`, payload);
       await fetchResults();
       setNewResult({ studentNumber: "", courseCode: "", grade: "" });
       setIsAddResultOpen(false);
@@ -104,7 +108,7 @@ const AdminDashboard = () => {
   // Delete Result
   const handleDeleteResult = async (resultId: number) => {
     try {
-      await axios.delete(`${baseUrl}/api/results/${resultId}`);
+      await api.delete(`${baseUrl}/api/results/${resultId}`);
       await fetchResults();
       toast({
         title: "Result Deleted",
@@ -141,7 +145,7 @@ const AdminDashboard = () => {
         courseCode: editResult.courseCode,
         grade: editResult.grade,
       };
-      await axios.put(`${baseUrl}/api/results/${editResult.id}`, payload);
+      await api.put(`${baseUrl}/api/results/${editResult.id}`, payload);
       await fetchResults();
       setIsEditResultOpen(false);
       toast({
@@ -159,7 +163,7 @@ const AdminDashboard = () => {
 
   const fetchResults = async () => {
     try {
-      const response = await axios.get(`${baseUrl}/api/results`);
+      const response = await api.get(`${baseUrl}/api/results`);
       setResults(response.data);
     } catch (error) {
       toast({
@@ -198,7 +202,7 @@ const AdminDashboard = () => {
         instructor: newCourse.instructor,
       };
 
-      await axios.post(`${baseUrl}/api/courses`, course);
+      await api.post(`${baseUrl}/api/courses`, course);
       await fetchCourses(); // Refresh courses after adding
       setNewCourse({ code: "", title: "", credits: "", instructor: "" });
       setIsAddCourseOpen(false);
@@ -219,7 +223,7 @@ const AdminDashboard = () => {
   // Modified handleDeleteCourse
   const handleDeleteCourse = async (courseId: number) => {
     try {
-      await axios.delete(`${baseUrl}/api/courses/${courseId}`);
+      await api.delete(`${baseUrl}/api/courses/${courseId}`);
       await fetchCourses(); // Refresh courses after deleting
       toast({
         title: "Course Deleted",
@@ -262,7 +266,7 @@ const AdminDashboard = () => {
         credits: parseInt(String(editCourse.credits)),
         instructor: editCourse.instructor,
       };
-      await axios.put(`${baseUrl}/api/courses/${editCourse.id}`, payload);
+      await api.put(`${baseUrl}/api/courses/${editCourse.id}`, payload);
       await fetchCourses();
       setIsEditCourseOpen(false);
       toast({ title: "Course Updated", description: `${payload.title} has been updated.` });
@@ -289,7 +293,7 @@ const AdminDashboard = () => {
         studentNumber: newStudent.studentNumber,
       };
 
-      await axios.post(`${baseUrl}/api/students`, student);
+      await api.post(`${baseUrl}/api/students`, student);
       await fetchStudents(); // Refresh students after adding
       setNewStudent({ name: "", email: "", studentNumber: "" });
       setIsAddStudentOpen(false);
@@ -310,7 +314,7 @@ const AdminDashboard = () => {
   // Modified handleDeleteStudent
   const handleDeleteStudent = async (studentId: number) => {
     try {
-      await axios.delete(`${baseUrl}/api/students/${studentId}`);
+      await api.delete(`${baseUrl}/api/students/${studentId}`);
       await fetchStudents(); // Refresh students after deleting
       toast({
         title: "Student Deleted",
@@ -351,7 +355,7 @@ const AdminDashboard = () => {
         email: editStudent.email,
         studentNumber: editStudent.studentNumber,
       };
-      await axios.put(`${baseUrl}/api/students/${editStudent.id}`, payload);
+      await api.put(`${baseUrl}/api/students/${editStudent.id}`, payload);
       await fetchStudents();
       setIsEditStudentOpen(false);
       toast({ title: "Student Updated", description: `${payload.name} has been updated.` });
@@ -365,6 +369,13 @@ const AdminDashboard = () => {
     if (grade.startsWith('B')) return 'bg-university-blue text-white';
     if (grade.startsWith('C')) return 'bg-university-warning text-white';
     return 'bg-university-gray text-white';
+  };
+
+  const togglePasswordVisibility = (studentId: number) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [studentId]: !prev[studentId]
+    }));
   };
 
   const renderOverview = () => (
@@ -663,54 +674,7 @@ const AdminDashboard = () => {
           <CardTitle>Student Management</CardTitle>
           <CardDescription>Add, edit, and manage student accounts</CardDescription>
         </div>
-        <Dialog open={isAddStudentOpen} onOpenChange={setIsAddStudentOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Student
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Student</DialogTitle>
-              <DialogDescription>Fill in the student details below.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  value={newStudent.name}
-                  onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
-                  placeholder="e.g., John Doe"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newStudent.email}
-                  onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
-                  placeholder="e.g., john.doe@university.edu"
-                />
-              </div>
-              <div>
-                <Label htmlFor="studentNumber">Student Number</Label>
-                <Input
-                  id="studentNumber"
-                  value={newStudent.studentNumber}
-                  onChange={(e) => setNewStudent({...newStudent, studentNumber: e.target.value})}
-                  placeholder="e.g., STU001"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddStudentOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddStudent}>Add Student</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <RegisterStudentDialog onStudentRegistered={fetchStudents} />
       </CardHeader>
       <CardContent>
         <Table>
@@ -719,6 +683,7 @@ const AdminDashboard = () => {
               <TableHead>Student Number</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Password</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -728,6 +693,30 @@ const AdminDashboard = () => {
                 <TableCell className="font-medium">{student.studentNumber}</TableCell>
                 <TableCell>{student.name}</TableCell>
                 <TableCell>{student.email}</TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    <span>
+                      {student.user?.password
+                        ? (showPasswords[student.id] ? student.user.password : "••••••••")
+                        : "-"
+                      }
+                    </span>
+                    {student.user?.password && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => togglePasswordVisibility(student.id)}
+                        className="h-6 w-6 p-0"
+                      >
+                        {showPasswords[student.id] ? (
+                          <EyeOff className="h-3 w-3" />
+                        ) : (
+                          <Eye className="h-3 w-3" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
                     <Button size="sm" variant="outline" onClick={() => openEditStudent(student)}>

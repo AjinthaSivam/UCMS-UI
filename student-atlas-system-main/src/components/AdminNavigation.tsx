@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { GraduationCap, LogOut, LayoutDashboard, BookOpen, Users, Trophy } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AdminNavigationProps {
   activeTab: string;
@@ -10,9 +11,10 @@ interface AdminNavigationProps {
 
 export const AdminNavigation = ({ activeTab, setActiveTab }: AdminNavigationProps) => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    // Add logout logic here
+    logout();
     navigate("/");
   };
 
@@ -56,7 +58,7 @@ export const AdminNavigation = ({ activeTab, setActiveTab }: AdminNavigationProp
           </div>
           
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-primary-foreground/80">Welcome, Admin</span>
+            <span className="text-sm text-primary-foreground/80">Welcome, {user?.name || 'Admin'}</span>
             <Button 
               variant="ghost" 
               size="sm" 

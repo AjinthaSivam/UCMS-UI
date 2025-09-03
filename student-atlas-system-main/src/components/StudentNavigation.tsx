@@ -1,12 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { GraduationCap, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const StudentNavigation = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    // Add logout logic here
+    logout();
     navigate("/");
   };
 
@@ -33,7 +35,7 @@ export const StudentNavigation = () => {
           </div>
           
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-primary-foreground/80">Welcome, Student</span>
+            <span className="text-sm text-primary-foreground/80">Welcome, {user?.name || 'Student'}</span>
             <Button 
               variant="ghost" 
               size="sm" 

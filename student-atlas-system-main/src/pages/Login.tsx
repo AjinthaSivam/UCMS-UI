@@ -3,27 +3,34 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GraduationCap, ArrowLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
-  const [studentNumber, setStudentNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Redirect if already authenticated
+  if (isAuthenticated) {
+    const from = location.state?.from?.pathname || '/';
+    navigate(from, { replace: true });
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !role || (role === "student" && !studentNumber)) {
+    if (!email || !password) {
       toast({
         title: "Missing Fields",
-        description: "Please fill in all required fields.",
+        description: "Please fill in email and password.",
         variant: "destructive",
       });
       return;
@@ -31,27 +38,29 @@ const Login = () => {
 
     setIsLoading(true);
     
-    // Simulate API call - replace with actual backend integration
     try {
-      // Mock login - replace with: await fetch('/api/auth/login', {...})
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const success = await login(email, password);
       
-      toast({
-        title: "Login Successful",
-        description: `Welcome ${role}!`,
-      });
+      if (success) {
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
 
-      // Navigate based on role
-      if (role === "admin") {
-        navigate("/admin/dashboard");
+        // Navigate to intended page or dashboard
+        const from = location.state?.from?.pathname || '/';
+        navigate(from, { replace: true });
       } else {
-        localStorage.setItem("studentNumber", studentNumber);
-        navigate("/student/dashboard");
+        toast({
+          title: "Login Failed",
+          description: "Invalid credentials. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: "Invalid credentials. Please try again.",
+        description: "An error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -108,32 +117,6 @@ const Login = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select value={role} onValueChange={setRole} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {role === "student" && (
-                <div className="space-y-2">
-                  <Label htmlFor="studentNumber">Student Number</Label>
-                  <Input
-                    id="studentNumber"
-                    placeholder="Enter your student number"
-                    value={studentNumber}
-                    onChange={(e) => setStudentNumber(e.target.value)}
-                    required
-                  />
-                </div>
-              )}
-
               <Button 
                 type="submit" 
                 className="w-full" 
@@ -145,8 +128,8 @@ const Login = () => {
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
               <p>Demo Credentials:</p>
-              <p>Student: student@university.edu / password</p>
-              <p>Admin: admin@university.edu / password</p>
+              <p>Admin: admin@university.edu / admin123</p>
+              <p>Student: potter@stu.university.edu / potter123</p>
             </div>
           </CardContent>
         </Card>
